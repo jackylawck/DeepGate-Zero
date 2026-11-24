@@ -28,7 +28,7 @@
     <section class="card security-panel">
       <div class="security-notice">
         <strong data-i18n="securityTitle">🔒 資安與治理邊界聲明：</strong>
-        <span data-i18n="securityBody">本工具無後端、無 LocalStorage、無 Cookies。API Key 鎖定後即從輸入框清除並僅存於私有記憶體（RAM），閒置 15 分鐘或關閉分頁即自動銷毀。請注意：本機零痕跡不等於 API 供應商伺服器零留存，且官方條款原則上不建議於瀏覽器使用密鑰；強烈建議搭配「無痕視窗」、於 DeepSeek 平台開啟「餘額預警」並以小額專用密鑰使用。</span>
+        <span data-i18n="securityBody">本工具無後端、無 LocalStorage、無 Cookies，且不呼叫雲端 Files API。API Key 與本機文字檔僅暫存於私有記憶體（RAM），閒置 15 分鐘或關閉分頁即自動銷毀。請注意：本機零痕跡不等於 API 供應商伺服器零留存，且官方條款原則上不建議於瀏覽器使用密鑰；強烈建議搭配「無痕視窗」、於 DeepSeek 平台開啟「餘額預警」並以小額專用密鑰使用。</span>
       </div>
 
       <div class="control-grid">
@@ -112,6 +112,22 @@
         請在上方貼上您的 DeepSeek API Key 並點擊「鎖定載入」，即可直接開始對話。
       </div>
     </section>
+
+    <!-- 純本機文字檔讀取列（零外部依賴、不觸碰雲端 Files API） -->
+    <div class="attach-bar">
+      <input
+        type="file"
+        id="fileInput"
+        class="hidden"
+        accept=".txt,.md,.csv,.json,.xml,.yaml,.yml,.log,.tsv,.html,.css,.js,.ts,.py,.sql"
+      />
+      <button type="button" id="attachFileBtn" class="btn-outline btn-sm" data-i18n="attachBtn">📎 讀取本機文字檔</button>
+      <span id="fileChip" class="file-chip hidden">
+        <span id="fileChipName" class="file-chip-name"></span>
+        <button type="button" id="removeFileBtn" class="file-chip-remove" aria-label="Remove file">✕</button>
+      </span>
+      <span id="attachHint" class="attach-hint" data-i18n="attachHint">純本地記憶體讀取（.txt / .md / .csv / .json / 程式碼，上限 512 KB），絕不上傳至雲端 Files API</span>
+    </div>
 
     <!-- 輸入發送區 -->
     <form id="chatForm" class="input-area" autocomplete="off">
