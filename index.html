@@ -1,0 +1,137 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="referrer" content="no-referrer" />
+  <!-- 極致內容安全政策：零內聯腳本、零物件嵌入、僅允許直連 DeepSeek 官方 API -->
+  <meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'self'; style-src 'self'; connect-src https://api.deepseek.com; img-src 'self' data:; object-src 'none'; worker-src 'none'; base-uri 'none'; form-action 'none';" />
+  <title>DeepGate Zero｜零痕深索</title>
+  <link rel="stylesheet" href="style.css" />
+</head>
+<body>
+  <!-- 抗點擊劫持警告（僅在被外部 iframe 嵌入時顯示） -->
+  <div id="clickjackWarning" class="clickjack-banner hidden" role="alert">
+    <span data-i18n="clickjackMsg">⚠️ 安全警告：偵測到此頁面正被其他網站以框架（iframe）嵌入，為保護您的 API Key，系統已自動停用輸入功能。請直接開啟官方網址。</span>
+  </div>
+
+  <header class="topbar">
+    <div class="brand">
+      <h1>DeepGate Zero <span class="divider">｜</span><span data-i18n="zhTitle">零痕深索</span></h1>
+      <span class="badge" data-i18n="badge">純前端 · 閉包記憶體 · 本地零儲存</span>
+    </div>
+    <button id="langToggle" class="btn-outline" type="button">English</button>
+  </header>
+
+  <main id="appMain" class="container">
+    <!-- 資安聲明與金鑰／模型／成本控制區 -->
+    <section class="card security-panel">
+      <div class="security-notice">
+        <strong data-i18n="securityTitle">🔒 資安與治理邊界聲明：</strong>
+        <span data-i18n="securityBody">本工具無後端、無 LocalStorage、無 Cookies。API Key 鎖定後即從輸入框清除並僅存於私有記憶體（RAM），閒置 15 分鐘或關閉分頁即自動銷毀。請注意：本機零痕跡不等於 API 供應商伺服器零留存，且官方條款原則上不建議於瀏覽器使用密鑰；強烈建議搭配「無痕視窗」、於 DeepSeek 平台開啟「餘額預警」並以小額專用密鑰使用。</span>
+      </div>
+
+      <div class="control-grid">
+        <!-- API Key 管理 -->
+        <div class="input-group">
+          <div class="label-row">
+            <label for="apiKeyInput" data-i18n="apiKeyLabel">DeepSeek API Key</label>
+            <span id="keyStatusPill" class="status-pill empty" data-i18n="statusEmpty">尚未載入密鑰</span>
+          </div>
+          <div class="key-row">
+            <input
+              type="password"
+              id="apiKeyInput"
+              placeholder="sk-..."
+              autocomplete="new-password"
+              autocorrect="off"
+              autocapitalize="off"
+              spellcheck="false"
+              data-lpignore="true"
+              data-1p-ignore="true"
+              data-bwignore="true"
+            />
+            <button id="lockKeyBtn" class="btn-secondary" type="button" data-i18n="lockBtn">鎖定載入</button>
+            <button id="wipeBtn" class="btn-danger" type="button" data-i18n="wipeBtn">一鍵銷毀</button>
+          </div>
+        </div>
+
+        <!-- 模型選擇與動態同步 -->
+        <div class="input-group">
+          <div class="label-row">
+            <label for="modelSelect" data-i18n="modelLabel">選擇模型</label>
+            <button id="syncModelsBtn" class="btn-link" type="button" data-i18n="syncBtn">同步最新模型</button>
+          </div>
+          <select id="modelSelect">
+            <option value="deepseek-chat" data-i18n="modelChat">deepseek-chat（通用對話）</option>
+            <option value="deepseek-reasoner" data-i18n="modelReasoner">deepseek-reasoner（深度推理）</option>
+            <option value="__custom__" data-i18n="modelCustom">自訂模型 ID...</option>
+          </select>
+          <input
+            type="text"
+            id="customModelInput"
+            class="custom-model-input hidden"
+            data-i18n-placeholder="customModelPlaceholder"
+            placeholder="輸入官方模型 ID（例如 deepseek-flash）"
+            autocomplete="off"
+            spellcheck="false"
+          />
+        </div>
+
+        <!-- 單次輸出上限（成本治理） -->
+        <div class="input-group">
+          <div class="label-row">
+            <label for="maxTokensSelect" data-i18n="maxTokensLabel">輸出上限</label>
+          </div>
+          <select id="maxTokensSelect">
+            <option value="auto" data-i18n="maxTokensAuto">預設（不設限）</option>
+            <option value="4096">4K (4,096)</option>
+            <option value="8192">8K (8,192)</option>
+            <option value="16384">16K (16,384)</option>
+            <option value="32768">32K (32,768)</option>
+          </select>
+        </div>
+      </div>
+
+      <!-- 快速場景與緩存友善控制 -->
+      <div class="presets-bar">
+        <div class="presets">
+          <span class="preset-label" data-i18n="presetLabel">快速場景：</span>
+          <button type="button" class="chip active" data-preset="general" data-i18n="presetGeneral">通用助手</button>
+          <button type="button" class="chip" data-preset="translate" data-i18n="presetTranslate">中英專業互譯</button>
+          <button type="button" class="chip" data-preset="polish" data-i18n="presetPolish">公文 / 電郵潤飾</button>
+          <button type="button" class="chip" data-preset="summarize" data-i18n="presetSummarize">重點摘要分析</button>
+        </div>
+        <button id="newChatBtn" class="btn-outline btn-sm" type="button" data-i18n="newChatBtn">新對話（保留密鑰）</button>
+      </div>
+    </section>
+
+    <!-- 對話顯示區 -->
+    <section id="chatBox" class="card chat-box" aria-live="polite">
+      <div class="empty-state" data-i18n="emptyState">
+        請在上方貼上您的 DeepSeek API Key 並點擊「鎖定載入」，即可直接開始對話。
+      </div>
+    </section>
+
+    <!-- 輸入發送區 -->
+    <form id="chatForm" class="input-area" autocomplete="off">
+      <textarea
+        id="promptInput"
+        rows="3"
+        data-i18n-placeholder="promptPlaceholder"
+        placeholder="輸入您的問題或貼上文字... (Enter 發送，Shift+Enter 換行)"
+      ></textarea>
+      <div class="action-buttons">
+        <button type="submit" id="sendBtn" class="btn-primary" data-i18n="sendBtn">發送</button>
+        <button type="button" id="stopBtn" class="btn-outline hidden" data-i18n="stopBtn">停止生成</button>
+      </div>
+    </form>
+  </main>
+
+  <footer class="footer">
+    <span data-i18n="footerText">DeepGate Zero 零痕深索 · 獨立開源純前端工具 · 直連 api.deepseek.com · 非官方出品</span>
+  </footer>
+
+  <script src="app.js" defer></script>
+</body>
+</html>
