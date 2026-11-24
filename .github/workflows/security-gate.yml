@@ -10,14 +10,21 @@ on:
 permissions:
   contents: read
 
+concurrency:
+  group: security-gate-${{ github.ref }}
+  cancel-in-progress: true
+
 jobs:
   security-gate:
     name: Zero-Dependency AppSec Check
     runs-on: ubuntu-latest
+    timeout-minutes: 5
 
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
+        with:
+          persist-credentials: false
 
       - name: 1. Verify required core files & JS syntax
         run: |
@@ -28,11 +35,11 @@ jobs:
             fi
           done
           node --check app.js
-          echo "Syntax check passed."
+          echo "Syntax and file integrity check passed."
 
       - name: 2. Secret leak guard (block hardcoded sk- keys)
         run: |
-          if grep -rnE --exclude-dir=.git 'sk-[A-Za-z0-9]{20,}' .; then
+          if grep -rnE --exclude-dir=.git 'sk-[A-Za-z0-9_-]{20,}' .; then
             echo "::error::Potential hardcoded API key detected!"
             exit 1
           fi
@@ -44,24 +51,30 @@ jobs:
             echo "::error::Forbidden browser storage API detected!"
             exit 1
           fi
-          if grep -nE '(\.|\[.)(innerHTML|outerHTML|insertAdjacentHTML)\b|document\.write[[:space:]]*\(|\beval[[:space:]]*\(|new[[:space:]]+Function[[:space:]]*\(' app.js index.html; then
+          if grep -nE '(\.|\[["'\''])(innerHTML|outerHTML|insertAdjacentHTML)\b|document\.write[[:space:]]*\(|\beval[[:space:]]*\(|new[[:space:]]+Function[[:space:]]*\(' app.js index.html; then
             echo "::error::Forbidden DOM XSS or unsafe execution sink detected!"
             exit 1
           fi
           echo "Zero-storage & DOM XSS checks passed."
 
-      - name: 4. Strict CSP, zero CDN & API endpoint lock
+      - name: 4. Strict CSP, zero CDN, CSS & exact API allowlist
         run: |
           node << 'EOF'
           const fs = require("fs");
           const html = fs.readFileSync("index.html", "utf8");
+          const css = fs.readFileSync("style.css", "utf8");
           const js = fs.readFileSync("app.js", "utf8");
 
+          // A. 嚴格 CSP 與 Referrer 標頭檢核
           const requiredHtml = [
             [/http-equiv="Content-Security-Policy"/i, "Missing CSP meta tag in index.html"],
             [/default-src 'none'/, "CSP must enforce default-src 'none'"],
             [/script-src 'self'/, "CSP must enforce script-src 'self'"],
+            [/style-src 'self'/, "CSP must enforce style-src 'self'"],
             [/connect-src https:\/\/api\.deepseek\.com;/, "CSP connect-src must be locked to https://api.deepseek.com"],
+            [/object-src 'none'/, "CSP must enforce object-src 'none'"],
+            [/base-uri 'none'/, "CSP must enforce base-uri 'none'"],
+            [/form-action 'none'/, "CSP must enforce form-action 'none'"],
             [/name="referrer"\s+content="no-referrer"/i, "Missing no-referrer meta tag in index.html"],
           ];
 
@@ -69,7 +82,6 @@ jobs:
             [/unsafe-inline|unsafe-eval/i, "CSP must not permit unsafe-inline or unsafe-eval"],
             [/<script(?![^>]*\bsrc=)[^>]*>/i, "Inline <script> tag is forbidden"],
             [/<(script|link)[^>]+(src|href)=["']https?:\/\//i, "External CDN script or stylesheet is forbidden"],
-            [/\son[a-z]+\s*=/i, "Inline HTML event handler (e.g. onclick=) is forbidden"],
           ];
 
           for (const [re, msg] of requiredHtml) {
@@ -85,13 +97,38 @@ jobs:
             }
           }
 
-          // 確保 app.js 內所有網路連線位址僅指向官方 api.deepseek.com
-          const urls = js.match(/https?:\/\/[^\s"'`<>]+/gi) || [];
-          const unauthorized = urls.filter((u) => !u.startsWith("https://api.deepseek.com/"));
-          if (unauthorized.length > 0) {
-            console.error("::error::Unauthorized external URL in app.js: " + unauthorized.join(", "));
+          // 僅檢查 HTML 標籤內的 on* 事件屬性，避免英文正文誤報
+          const htmlTags = html.match(/<[^>]+>/g) || [];
+          for (const tag of htmlTags) {
+            if (/\son[a-z]+\s*=/i.test(tag)) {
+              console.error("::error::Inline HTML event handler is forbidden: " + tag);
+              process.exit(1);
+            }
+          }
+
+          // B. style.css 零外部依賴與防資料外洩檢查
+          if (/@import\b/i.test(css) || /https?:\/\//i.test(css)) {
+            console.error("::error::External URL or @import detected in style.css");
             process.exit(1);
           }
 
-          console.log("Strict CSP, zero-CDN & endpoint lock checks passed.");
+          // C. app.js 精準端點白名單（防止誤觸雲端 Files API 或外部連線）
+          const ALLOWED_ENDPOINTS = new Set([
+            "https://api.deepseek.com/chat/completions",
+            "https://api.deepseek.com/models",
+          ]);
+          const urls = js.match(/https?:\/\/[^\s"'`<>]+/gi) || [];
+          const unauthorized = urls.filter((u) => !ALLOWED_ENDPOINTS.has(u));
+          if (unauthorized.length > 0) {
+            console.error("::error::Unauthorized external or non-allowlisted URL in app.js: " + unauthorized.join(", "));
+            process.exit(1);
+          }
+
+          // D. 確保 fetch 維持零憑證與零網路快取防線
+          if (!/credentials:\s*"omit"/.test(js) || !/cache:\s*"no-store"/.test(js)) {
+            console.error('::error::app.js must enforce credentials: "omit" and cache: "no-store"');
+            process.exit(1);
+          }
+
+          console.log("Strict CSP, zero-CDN, CSS hygiene & exact API allowlist checks passed.");
           EOF
