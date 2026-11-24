@@ -1,6 +1,6 @@
 # DeepGate Zero｜零痕深索
 
-[![Live Demo](https://img.shields.io/badge/Live%20Demo-GitHub%20Pages-1d4ed8?style=flat-square)](https://jackylawck.github.io/DeepGate-Zero/)
+[![GitHub Pages](https://github.com/jackylawck/DeepGate-Zero/actions/workflows/pages/pages-build-deployment/badge.svg)](https://jackylawck.github.io/DeepGate-Zero/)
 [![Security & Governance Gate](https://github.com/jackylawck/DeepGate-Zero/actions/workflows/security-gate.yml/badge.svg)](https://github.com/jackylawck/DeepGate-Zero/actions/workflows/security-gate.yml)
 
 **Pure Client-Side, RAM-Only BYOK Gateway for DeepSeek API**  
