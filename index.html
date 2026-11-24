@@ -1,12 +1,53 @@
 <!DOCTYPE html>
-<html lang="zh-Hant">
+<html lang="zh-HK" prefix="og: https://ogp.me/ns#">
 <head>
   <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+
+  <!-- 🔍 Google Search Console 驗證與基礎 SEO -->
+  <meta name="google-site-verification" content="JZ5UohX-CcP_fQV0_DI9VadkKY4ZoTTkUifL88-fIcY" />
+  <title>DeepGate Zero｜零痕深索 — 純前端零儲存 DeepSeek BYOK 連接器</title>
+  <meta name="description" content="DeepGate Zero（零痕深索）是純前端、零後端、零外部依賴的 DeepSeek API 自帶密鑰（BYOK）連接器。採用私有閉包記憶體鎖鑰、嚴格 CSP、純本地文字檔讀取與前綴緩存治理，關閉分頁即徹底銷毀。" />
+  <meta name="keywords" content="DeepGate Zero, 零痕深索, DeepSeek API, BYOK, Zero Storage, Privacy by Design, 純前端, 零儲存, AI治理, AI Governance, AppSec, 羅子淇, Jacky Law" />
+  <meta name="author" content="羅子淇 (Jacky Law)" />
+  <meta name="robots" content="index, follow" />
+  <link rel="canonical" href="https://jackylawck.github.io/DeepGate-Zero/" />
+
+  <!-- 🌐 Open Graph / Facebook / LinkedIn / WhatsApp 預覽卡片 -->
+  <meta property="og:type" content="website" />
+  <meta property="og:url" content="https://jackylawck.github.io/DeepGate-Zero/" />
+  <meta property="og:title" content="DeepGate Zero｜零痕深索 — 純前端零儲存 DeepSeek 連接器" />
+  <meta property="og:description" content="零後端、零 LocalStorage、零外部依賴。API Key 僅鎖定於瀏覽器私有記憶體（RAM），直連 DeepSeek 官方介面，支援本機純文字檔讀取與中英雙語切換。" />
+  <meta property="og:image" content="https://jackylawck.github.io/DeepGate-Zero/DeepGate512icon.png" />
+  <meta property="og:image:width" content="512" />
+  <meta property="og:image:height" content="512" />
+  <meta property="og:image:alt" content="DeepGate Zero 零痕深索圖示" />
+  <meta property="og:locale" content="zh_HK" />
+  <meta property="og:locale:alternate" content="en_US" />
+  <meta property="og:site_name" content="DeepGate Zero｜零痕深索" />
+
+  <!-- 🐦 X (Twitter) 卡片 -->
+  <meta name="twitter:card" content="summary" />
+  <meta name="twitter:title" content="DeepGate Zero｜零痕深索 — Zero-Storage DeepSeek BYOK Gateway" />
+  <meta name="twitter:description" content="Client-only, closure RAM-only BYOK gateway for DeepSeek API. Strict CSP, zero dependencies, local text file reader, and automated AppSec gate." />
+  <meta name="twitter:image" content="https://jackylawck.github.io/DeepGate-Zero/DeepGate512icon.png" />
+
+  <!-- 📱 加入手機主畫面（PWA / iOS & Android Web App） -->
+  <link rel="manifest" href="manifest.json" />
+  <link rel="icon" type="image/png" sizes="192x192" href="DeepGate192icon.png" />
+  <link rel="icon" type="image/png" sizes="512x512" href="DeepGate512icon.png" />
+  <link rel="apple-touch-icon" sizes="192x192" href="DeepGate192icon.png" />
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-status-bar-style" content="default" />
+  <meta name="apple-mobile-web-app-title" content="零痕深索" />
+  <meta name="mobile-web-app-capable" content="yes" />
+  <meta name="theme-color" content="#1d4ed8" />
+  <meta name="application-name" content="DeepGate Zero｜零痕深索" />
+
+  <!-- 🛡️ 極致內容安全政策：零內聯腳本、零外部 CDN、僅允許直連 DeepSeek 官方 API -->
   <meta name="referrer" content="no-referrer" />
-  <!-- 極致內容安全政策：零內聯腳本、零物件嵌入、僅允許直連 DeepSeek 官方 API -->
-  <meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'self'; style-src 'self'; connect-src https://api.deepseek.com; img-src 'self' data:; object-src 'none'; worker-src 'none'; base-uri 'none'; form-action 'none';" />
-  <title>DeepGate Zero｜零痕深索</title>
+  <meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'self'; style-src 'self'; connect-src https://api.deepseek.com; img-src 'self' data:; manifest-src 'self'; object-src 'none'; worker-src 'none'; base-uri 'none'; form-action 'none';" />
+
   <link rel="stylesheet" href="style.css" />
 </head>
 <body>
