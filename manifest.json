@@ -1,0 +1,26 @@
+{
+  "name": "DeepGate Zero｜零痕深索",
+  "short_name": "零痕深索",
+  "description": "Pure client-side, zero-storage BYOK gateway for DeepSeek API.",
+  "start_url": "./",
+  "scope": "./",
+  "display": "standalone",
+  "orientation": "portrait-primary",
+  "background_color": "#f8fafc",
+  "theme_color": "#1d4ed8",
+  "lang": "zh-HK",
+  "icons": [
+    {
+      "src": "DeepGate192icon.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "DeepGate512icon.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any"
+    }
+  ]
+}
