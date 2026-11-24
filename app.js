@@ -8,6 +8,7 @@
     IDLE_TIMEOUT_MS: 15 * 60 * 1000, // 閒置 15 分鐘自動銷毀記憶體
     SYNC_TIMEOUT_MS: 10 * 1000,      // /models 同步逾時上限 10 秒
     HISTORY_WARN_THRESHOLD: 40,      // 滿 20 輪（40 條訊息）提醒重置對話以控制成本
+    MAX_FILE_BYTES: 512 * 1024,      // 本地純文字檔讀取上限 512 KB
     KEY_REGEX: /^sk-[A-Za-z0-9_-]{10,200}$/,
     MODEL_ID_REGEX: /^[A-Za-z0-9._:/-]{2,100}$/,
     LEAK_DETECT_REGEX: /\bsk-[A-Za-z0-9_-]{16,}\b/
@@ -20,7 +21,7 @@
       badge: "純前端 · 閉包記憶體 · 本地零儲存",
       clickjackMsg: "⚠️ 安全警告：偵測到此頁面正被其他網站以框架（iframe）嵌入，為保護您的 API Key，系統已自動停用輸入功能。請直接開啟官方網址。",
       securityTitle: "🔒 資安與治理邊界聲明：",
-      securityBody: "本工具無後端、無 LocalStorage、無 Cookies。API Key 鎖定後即從輸入框清除並僅存於私有記憶體（RAM），閒置 15 分鐘或關閉分頁即自動銷毀。請注意：本機零痕跡不等於 API 供應商伺服器零留存，且官方條款原則上不建議於瀏覽器使用密鑰；強烈建議搭配「無痕視窗」、於 DeepSeek 平台開啟「餘額預警」並以小額專用密鑰使用。",
+      securityBody: "本工具無後端、無 LocalStorage、無 Cookies，且不呼叫雲端 Files API。API Key 與本機文字檔僅暫存於私有記憶體（RAM），閒置 15 分鐘或關閉分頁即自動銷毀。請注意：本機零痕跡不等於 API 供應商伺服器零留存，且官方條款原則上不建議於瀏覽器使用密鑰；強烈建議搭配「無痕視窗」、於 DeepSeek 平台開啟「餘額預警」並以小額專用密鑰使用。",
       apiKeyLabel: "DeepSeek API Key",
       statusEmpty: "尚未載入密鑰",
       statusLockedPrefix: "🔒 已鎖定於 RAM：",
@@ -43,6 +44,8 @@
       presetSummarize: "重點摘要分析",
       newChatBtn: "新對話（保留密鑰）",
       emptyState: "請在上方貼上您的 DeepSeek API Key 並點擊「鎖定載入」，即可直接開始對話。",
+      attachBtn: "📎 讀取本機文字檔",
+      attachHint: "純本地記憶體讀取（.txt / .md / .csv / .json / 程式碼，上限 512 KB），絕不上傳至雲端 Files API",
       promptPlaceholder: "輸入您的問題或貼上文字... (Enter 發送，Shift+Enter 換行)",
       sendBtn: "發送",
       stopBtn: "停止生成",
@@ -53,13 +56,18 @@
       alertInvalidKey: "API Key 格式不正確，請確認為 sk- 開頭且不含空白或換行。",
       alertInvalidModel: "請輸入有效的自訂模型 ID（僅限英數與 - _ . / :）。",
       alertKeyInPrompt: "🛡️ 防外洩攔截：系統偵測到您的對話內容疑似包含 API Key（sk-...），已中止發送以防密鑰寫入對話紀錄。",
+      alertKeyInFile: "🛡️ 防外洩攔截：所選檔案內容疑似包含 API Key（sk-...），系統已拒載並清除該檔案。",
+      alertFileEmpty: "所選檔案沒有可讀取的文字內容。",
+      alertFileTooLarge: "檔案超過 512 KB 安全上限（防止誤耗大量 Token），請節錄需要的片段後貼上。",
+      alertFileBinary: "偵測到非純文字檔案（例如 PDF、Word 或圖片）。為維持零外部依賴與不碰雲端 Files API，請先複製內文再貼入對話框。",
+      alertFileReadErr: "讀取本機檔案失敗，請確認檔案未受損並重試。",
       confirmPresetSwitch: "目前對話仍在進行中。切換「快速場景」會改寫 System Prompt 並導致前綴緩存（Prefix Cache）失效，增加後續輸入費用。\n\n確定直接切換嗎？（按「取消」後可先點「新對話」以保持最佳緩存效率）",
       historyLongWarn: "💡 成本提醒：目前對話已累積超過 20 輪，持續附帶完整歷史將增加 Token 消耗，建議點擊「新對話（保留密鑰）」保持成本可控。",
       newChatNotice: "已開啟新對話並重置緩存起點，RAM 中的 API Key 仍保持鎖定。",
       syncSuccessPrefix: "已成功從官方接口同步最新可用模型（共 ",
       syncSuccessSuffix: " 個）。",
-      wipedManual: "已徹底清除私有記憶體中的 API Key 與所有對話紀錄。",
-      wipedIdle: "為保障資安，系統因閒置超過 15 分鐘已自動銷毀記憶體中的 API Key 與對話紀錄。",
+      wipedManual: "已徹底清除私有記憶體中的 API Key、已載入文字檔與所有對話紀錄。",
+      wipedIdle: "為保障資安，系統因閒置超過 15 分鐘已自動銷毀記憶體中的 API Key、文字檔與對話紀錄。",
       refusalNotice: "🛡️ 內容審核撤回：官方安全機制已攔截或撤回此輪回覆，系統已自動清除已渲染內容且不會寫入對話紀錄。",
       reasoningStopped: "（推理階段已由使用者手動中斷；以上思考內容已保留，未寫入後續對話上下文）",
       reasoningTruncated: "（輸出已達上限或未產生正文；以上思考內容已保留，未寫入後續對話上下文）",
@@ -79,7 +87,7 @@
       badge: "Client-Only · Closure RAM · Local Zero-Storage",
       clickjackMsg: "⚠️ Security Alert: This page is embedded inside an external iframe. Input has been disabled to protect your API Key. Please open the official URL directly.",
       securityTitle: "🔒 Security & Governance Boundaries: ",
-      securityBody: "No backend, no LocalStorage, no Cookies. Once locked, your API Key is purged from the DOM input and held strictly in private closure RAM, auto-wiped after 15 mins idle or upon closing the tab. Note: Local zero-storage does not mean zero-retention on the API provider's servers, and DeepSeek ToS discourages browser-side keys. Use Incognito mode with a low-balance dedicated key and platform balance alerts.",
+      securityBody: "No backend, no LocalStorage, no Cookies, and no cloud Files API. Your API Key and local text files live strictly in private closure RAM, auto-wiped after 15 mins idle or upon closing the tab. Note: Local zero-storage does not mean zero-retention on the API provider's servers, and DeepSeek ToS discourages browser-side keys. Use Incognito mode with a low-balance dedicated key and platform balance alerts.",
       apiKeyLabel: "DeepSeek API Key",
       statusEmpty: "No Key Loaded",
       statusLockedPrefix: "🔒 Locked in RAM: ",
@@ -102,6 +110,8 @@
       presetSummarize: "Executive Summary",
       newChatBtn: "New Chat (Keep Key)",
       emptyState: "Paste your DeepSeek API Key above and click 'Lock to RAM' to start safely.",
+      attachBtn: "📎 Read Local Text File",
+      attachHint: "Local RAM read only (.txt / .md / .csv / .json / code, max 512 KB). Never uploaded to cloud Files API.",
       promptPlaceholder: "Type your message or paste text... (Enter to send, Shift+Enter for new line)",
       sendBtn: "Send",
       stopBtn: "Stop",
@@ -112,13 +122,18 @@
       alertInvalidKey: "Invalid API Key format. Ensure it starts with 'sk-' and contains no spaces.",
       alertInvalidModel: "Please enter a valid custom Model ID (letters, numbers, and - _ . / : only).",
       alertKeyInPrompt: "🛡️ Leak Guard Blocked: Your message appears to contain an API Key (sk-...). Sending was cancelled to prevent accidental secret leakage.",
+      alertKeyInFile: "🛡️ Leak Guard Blocked: The selected file appears to contain an API Key (sk-...). Attachment rejected and cleared.",
+      alertFileEmpty: "The selected file contains no readable text.",
+      alertFileTooLarge: "File exceeds the 512 KB safety cap (to prevent accidental large token bills). Please paste only the needed excerpt.",
+      alertFileBinary: "Binary file detected (e.g., PDF, Word, or image). To stay zero-dependency and avoid cloud Files API, please copy and paste the text directly.",
+      alertFileReadErr: "Failed to read the local file. Please verify the file and try again.",
       confirmPresetSwitch: "Switching presets mid-conversation changes the System Prompt and invalidates DeepSeek's Prefix Cache, increasing input token cost.\n\nSwitch anyway? (Click Cancel and use 'New Chat' first to preserve cache efficiency.)",
       historyLongWarn: "💡 Cost Tip: This conversation exceeds 20 turns. Consider clicking 'New Chat (Keep Key)' to keep token costs predictable.",
       newChatNotice: "Started a new chat with a clean cache prefix. Your API Key remains locked in RAM.",
       syncSuccessPrefix: "Synced available models from official API (",
       syncSuccessSuffix: " found).",
-      wipedManual: "API Key and conversation history have been permanently wiped from RAM.",
-      wipedIdle: "Security Auto-Wipe: API Key and chat history were purged after 15 minutes of inactivity.",
+      wipedManual: "API Key, attached file, and conversation history have been permanently wiped from RAM.",
+      wipedIdle: "Security Auto-Wipe: API Key, attached file, and chat history were purged after 15 minutes of inactivity.",
       refusalNotice: "🛡️ Content Filter Retraction: This response was flagged or refused by the API safety system. Rendered output has been cleared and excluded from chat history.",
       reasoningStopped: "(Reasoning interrupted by user; thinking trace preserved above and excluded from chat context.)",
       reasoningTruncated: "(Output limit reached before final reply; thinking trace preserved above and excluded from chat context.)",
@@ -141,16 +156,18 @@
     summarize: "Analyze the provided text and extract key takeaways, action items, and potential risks using clear bullet points in the user's language."
   });
 
-  // 2. 私有閉包狀態（絕不掛載於 window，亦不寫入 Storage / DOM）
+  // 2. 私有閉包狀態（絕不掛載於 window，亦不寫入瀏覽器持久化儲存）
   let ramApiKey = null;
   let maskedKeyHint = "";
   let currentLang = "zh";
   let currentPreset = "general";
   let conversationHistory = [];
+  let attachedFile = null;               // 純記憶體暫存：{ name, size, content }
+  let fileReadSeq = 0;                   // 讀檔競態序號守衛
   let abortController = null;
   let syncAbortController = null;
   let idleTimerId = null;
-  let sessionEpoch = 0;                  // 競態守衛：每次重置對話或銷毀即遞增
+  let sessionEpoch = 0;                  // 會話競態守衛：每次重置對話或銷毀即遞增
   let isStreaming = false;               // 串流進行中暫停閒置自動銷毀並防止重複送出
   const noSafetyCheckModels = new Set(); // 按模型粒度記錄不支援 safety_check 的型號
 
@@ -168,6 +185,12 @@
   const maxTokensSelect = document.getElementById("maxTokensSelect");
   const newChatBtn = document.getElementById("newChatBtn");
   const chatBox = document.getElementById("chatBox");
+  const fileInput = document.getElementById("fileInput");
+  const attachFileBtn = document.getElementById("attachFileBtn");
+  const fileChip = document.getElementById("fileChip");
+  const fileChipName = document.getElementById("fileChipName");
+  const removeFileBtn = document.getElementById("removeFileBtn");
+  const attachHint = document.getElementById("attachHint");
   const chatForm = document.getElementById("chatForm");
   const promptInput = document.getElementById("promptInput");
   const sendBtn = document.getElementById("sendBtn");
@@ -207,7 +230,90 @@
     }
   }
 
-  // 5. 更新金鑰狀態 UI（純 textContent）
+  // 5. 本地文字檔記憶體管理（零雲端 Files API、二進位攔截、DLP 密鑰防呆）
+  function formatBytes(bytes) {
+    if (bytes < 1024) return `${bytes} B`;
+    return `${(bytes / 1024).toFixed(1)} KB`;
+  }
+
+  function updateAttachmentUI() {
+    if (attachedFile) {
+      fileChipName.textContent = `📄 ${attachedFile.name} (${formatBytes(attachedFile.size)})`;
+      fileChip.classList.remove("hidden");
+      attachHint.classList.add("hidden");
+    } else {
+      fileChipName.textContent = "";
+      fileChip.classList.add("hidden");
+      attachHint.classList.remove("hidden");
+    }
+  }
+
+  function clearAttachedFile() {
+    fileReadSeq += 1;
+    attachedFile = null;
+    if (fileInput) fileInput.value = "";
+    updateAttachmentUI();
+  }
+
+  async function handleFileSelect() {
+    const file = fileInput.files && fileInput.files[0];
+    // 立即清空 DOM 檔案控制項，避免保留引用並允許重複選取同名檔
+    fileInput.value = "";
+    if (!file) return;
+
+    const dict = I18N[currentLang];
+    if (file.size === 0) {
+      showSystemMessage(dict.alertFileEmpty, "system-alert");
+      return;
+    }
+    if (file.size > CONFIG.MAX_FILE_BYTES) {
+      showSystemMessage(dict.alertFileTooLarge, "system-alert");
+      return;
+    }
+
+    const myEpoch = sessionEpoch;
+    const mySeq = ++fileReadSeq;
+
+    try {
+      const buf = await file.arrayBuffer();
+      if (myEpoch !== sessionEpoch || mySeq !== fileReadSeq) return;
+
+      // 檢測前 8 KB 是否含空位元組（0x00），攔截 PDF / Word / 圖片等二進位檔
+      const probeLen = Math.min(buf.byteLength, 8192);
+      const probe = new Uint8Array(buf, 0, probeLen);
+      for (let i = 0; i < probeLen; i += 1) {
+        if (probe[i] === 0) {
+          showSystemMessage(I18N[currentLang].alertFileBinary, "system-alert");
+          return;
+        }
+      }
+
+      const text = new TextDecoder("utf-8", { fatal: false }).decode(buf);
+      if (!text.trim()) {
+        showSystemMessage(I18N[currentLang].alertFileEmpty, "system-alert");
+        return;
+      }
+
+      // DLP 防呆：攔截夾帶 API Key 的設定檔或日誌檔
+      if (CONFIG.LEAK_DETECT_REGEX.test(text)) {
+        showSystemMessage(I18N[currentLang].alertKeyInFile, "system-alert");
+        return;
+      }
+
+      attachedFile = {
+        name: file.name,
+        size: file.size,
+        content: text
+      };
+      updateAttachmentUI();
+      resetIdleTimer();
+    } catch (_) {
+      if (myEpoch !== sessionEpoch || mySeq !== fileReadSeq) return;
+      showSystemMessage(I18N[currentLang].alertFileReadErr, "system-alert");
+    }
+  }
+
+  // 6. 更新金鑰狀態 UI（純 textContent）
   function updateKeyStatusUI() {
     const dict = I18N[currentLang];
     if (ramApiKey !== null) {
@@ -230,7 +336,7 @@
     }
   }
 
-  // 6. 載入並鎖定密鑰至私有閉包記憶體，立即抹除 DOM 輸入框
+  // 7. 載入並鎖定密鑰至私有閉包記憶體，立即抹除 DOM 輸入框
   function lockKeyToRam() {
     const candidate = apiKeyInput.value.trim();
     if (!candidate) {
@@ -263,7 +369,7 @@
     return false;
   }
 
-  // 7. 僅清空對話紀錄、保留 RAM 密鑰（與 wipeAll 對稱中斷 sync 與重置按鈕）
+  // 8. 僅清空對話紀錄與暫存檔、保留 RAM 密鑰（與 wipeAll 對稱中斷 sync 與重置按鈕）
   function startNewChat() {
     sessionEpoch += 1;
     isStreaming = false;
@@ -277,6 +383,7 @@
       syncAbortController = null;
     }
 
+    clearAttachedFile();
     conversationHistory.length = 0;
     sendBtn.disabled = false;
     stopBtn.classList.add("hidden");
@@ -292,7 +399,7 @@
     resetIdleTimer();
   }
 
-  // 8. 徹底銷毀記憶體中所有敏感資料（密鑰＋對話＋降級快取）
+  // 9. 徹底銷毀記憶體中所有敏感資料（密鑰＋文字檔＋對話＋降級快取）
   function wipeAll(noticeKey = "wipedManual") {
     sessionEpoch += 1;
     isStreaming = false;
@@ -307,6 +414,7 @@
     }
     pauseIdleTimer();
 
+    clearAttachedFile();
     ramApiKey = null;
     maskedKeyHint = "";
     apiKeyInput.value = "";
@@ -325,7 +433,7 @@
     chatBox.replaceChildren(emptyDiv);
   }
 
-  // 9. 動態同步官方最新可用模型（GET /models，含 10 秒超時中斷與完整競態守衛）
+  // 10. 動態同步官方最新可用模型（GET /models，含 10 秒超時中斷與完整競態守衛）
   async function handleSyncModels() {
     if (!ensureKeyReady()) return;
 
@@ -408,7 +516,6 @@
       }
     } finally {
       clearTimeout(timeoutId);
-      // 僅在仍是當前活動 sync 時才清空 controller 並還原按鈕，避免連點或重置時狀態錯亂
       if (syncAbortController === mySyncAbort) {
         syncAbortController = null;
         if (myEpoch === sessionEpoch) {
@@ -441,7 +548,7 @@
     return modelSelect.value;
   }
 
-  // 10. 雙語切換（全 textContent，零 innerHTML）
+  // 11. 雙語切換（全 textContent，零 DOM 注入風險）
   function applyLanguage(lang) {
     currentLang = lang;
     const dict = I18N[lang];
@@ -474,7 +581,7 @@
     updateKeyStatusUI();
   }
 
-  // 11. 安全渲染工具（100% textContent 防範 DOM XSS）
+  // 12. 安全渲染工具（100% textContent 防範 DOM XSS）
   function clearEmptyState() {
     const empty = chatBox.querySelector(".empty-state");
     if (empty) empty.remove();
@@ -512,7 +619,6 @@
     return { wrapper, bodyDiv };
   }
 
-  // 僅在 hitTokens > 0 時顯示緩存命中率，避免首次 0% 造成誤導
   function formatUsageText(usage) {
     if (!usage || typeof usage !== "object") return "";
     const dict = I18N[currentLang];
@@ -577,7 +683,6 @@
     return `${dict.errGeneric}HTTP ${status}`;
   }
 
-  // 檢測串流中途或結尾的安全審核拒答訊號
   function isSafetyRefusalChunk(json, choice) {
     const finish = choice?.finish_reason;
     if (finish === "content_filter" || finish === "safety") return true;
@@ -587,7 +692,6 @@
     return false;
   }
 
-  // 按模型粒度進行 safety_check 降級，且僅在 400 錯誤體明確指向不支援該參數時才降級
   async function postChatWithSafetyFallback(basePayload, signal) {
     const sendFetch = (bodyObj) => fetch(CONFIG.CHAT_ENDPOINT, {
       method: "POST",
@@ -637,7 +741,7 @@
     return res;
   }
 
-  // 12. 串流請求 DeepSeek 官方 API（Epoch 守衛 ＋ 串流暫停計時 ＋ 推理中斷保護）
+  // 13. 串流請求 DeepSeek 官方 API（支援純文字＋本機附載文字檔）
   async function handleSend(e) {
     e.preventDefault();
     if (isStreaming) return;
@@ -647,11 +751,16 @@
     if (!modelId) return;
 
     const prompt = promptInput.value.trim();
-    if (!prompt) return;
+    if (!prompt && !attachedFile) return;
 
-    // DLP 防呆：攔截誤貼於對話框的 API Key
+    // DLP 防呆：攔截對話框或附載檔中的 API Key
     if (CONFIG.LEAK_DETECT_REGEX.test(prompt)) {
       showSystemMessage(I18N[currentLang].alertKeyInPrompt, "system-alert");
+      return;
+    }
+    if (attachedFile && CONFIG.LEAK_DETECT_REGEX.test(attachedFile.content)) {
+      clearAttachedFile();
+      showSystemMessage(I18N[currentLang].alertKeyInFile, "system-alert");
       return;
     }
 
@@ -663,9 +772,22 @@
       showSystemMessage(I18N[currentLang].historyLongWarn, "system-warn");
     }
 
-    appendUserMessage(prompt);
+    // 組合 API 請求內容（含全文）與畫面氣泡顯示（僅顯示檔名摘要，避免長文撐爆介面）
+    let apiPrompt = prompt;
+    let displayPrompt = prompt;
+    if (attachedFile) {
+      const sizeStr = formatBytes(attachedFile.size);
+      const fileBlock = `--- BEGIN LOCAL FILE: ${attachedFile.name} (${sizeStr}) ---\n${attachedFile.content}\n--- END LOCAL FILE ---`;
+      apiPrompt = prompt ? `${fileBlock}\n\n${prompt}` : fileBlock;
+      displayPrompt = prompt
+        ? `📎 ${attachedFile.name} (${sizeStr})\n\n${prompt}`
+        : `📎 ${attachedFile.name} (${sizeStr})`;
+      clearAttachedFile();
+    }
+
+    appendUserMessage(displayPrompt);
     promptInput.value = "";
-    conversationHistory.push({ role: "user", content: prompt });
+    conversationHistory.push({ role: "user", content: apiPrompt });
 
     const basePayload = {
       model: modelId,
@@ -685,7 +807,6 @@
       }
     }
 
-    // 競態快照與串流狀態鎖定
     const myEpoch = sessionEpoch;
     const myAbort = new AbortController();
     abortController = myAbort;
@@ -743,7 +864,6 @@
             const choice = json.choices?.[0];
             if (!choice) continue;
 
-            // 偵測串流中途或結尾的安全拒答標記，立即撤回內容
             if (isSafetyRefusalChunk(json, choice)) {
               isRefused = true;
               break;
@@ -781,7 +901,6 @@
       if (myEpoch !== sessionEpoch) return;
 
       if (isRefused) {
-        // 事後拒答撤回：清空畫面並彈出本輪 user 訊息，避免污染上下文
         conversationHistory.pop();
         if (reasoningDiv) reasoningDiv.remove();
         wrapper.className = "msg refusal";
@@ -800,7 +919,6 @@
         wrapper.remove();
       }
     } catch (err) {
-      // 若會話已被使用者重置或銷毀，靜默丟棄，絕不碰新會話的歷史與 DOM
       if (myEpoch !== sessionEpoch) return;
 
       if (err.name === "AbortError") {
@@ -835,7 +953,7 @@
     }
   }
 
-  // 13. 事件綁定與頁面銷毀防快取殘留
+  // 14. 事件綁定與頁面銷毀防快取殘留
   if (enforceFrameProtection()) return;
 
   langToggle.addEventListener("click", () => {
@@ -856,12 +974,17 @@
   newChatBtn.addEventListener("click", startNewChat);
   wipeBtn.addEventListener("click", () => wipeAll("wipedManual"));
 
+  attachFileBtn.addEventListener("click", () => {
+    fileInput.click();
+  });
+  fileInput.addEventListener("change", handleFileSelect);
+  removeFileBtn.addEventListener("click", clearAttachedFile);
+
   presetChips.forEach((chip) => {
     chip.addEventListener("click", () => {
       const targetPreset = chip.getAttribute("data-preset") || "general";
       if (targetPreset === currentPreset) return;
 
-      // 前綴緩存保護：若對話進行中，提醒使用者切換場景將破壞緩存
       if (conversationHistory.length > 0) {
         const proceed = window.confirm(I18N[currentLang].confirmPresetSwitch);
         if (!proceed) return;
@@ -888,12 +1011,15 @@
 
   const purgeMemoryOnLeave = () => {
     sessionEpoch += 1;
+    fileReadSeq += 1;
     isStreaming = false;
     pauseIdleTimer();
     ramApiKey = null;
+    attachedFile = null;
     conversationHistory.length = 0;
     noSafetyCheckModels.clear();
     apiKeyInput.value = "";
+    if (fileInput) fileInput.value = "";
   };
 
   window.addEventListener("pagehide", purgeMemoryOnLeave);
