@@ -26,7 +26,7 @@ jobs:
         with:
           persist-credentials: false
 
-      - name: 1. Verify required core files & JS syntax
+      - name: 1. Verify required core files & syntax
         run: |
           for f in index.html style.css app.js README.md; do
             if [ ! -f "$f" ]; then
@@ -45,19 +45,19 @@ jobs:
           fi
           echo "No hardcoded API keys detected."
 
-      - name: 3. Zero-storage & DOM XSS guard
+      - name: 3. Zero-storage, no-SW & DOM XSS guard
         run: |
-          if grep -nE '\b(localStorage|sessionStorage|indexedDB)\b|document\.cookie' app.js index.html; then
-            echo "::error::Forbidden browser storage API detected!"
+          if grep -nE '\b(localStorage|sessionStorage|indexedDB)\b|document\.cookie|navigator\.serviceWorker|caches\.open' app.js index.html; then
+            echo "::error::Forbidden browser storage or Service Worker API detected!"
             exit 1
           fi
           if grep -nE '(\.|\[["'\''])(innerHTML|outerHTML|insertAdjacentHTML)\b|document\.write[[:space:]]*\(|\beval[[:space:]]*\(|new[[:space:]]+Function[[:space:]]*\(' app.js index.html; then
             echo "::error::Forbidden DOM XSS or unsafe execution sink detected!"
             exit 1
           fi
-          echo "Zero-storage & DOM XSS checks passed."
+          echo "Zero-storage, no-SW & DOM XSS checks passed."
 
-      - name: 4. Strict CSP, zero CDN, CSS & exact API allowlist
+      - name: 4. Strict CSP, PWA manifest, zero CDN, CSS & exact API allowlist
         run: |
           node << 'EOF'
           const fs = require("fs");
@@ -73,15 +73,23 @@ jobs:
             [/style-src 'self'/, "CSP must enforce style-src 'self'"],
             [/connect-src https:\/\/api\.deepseek\.com;/, "CSP connect-src must be locked to https://api.deepseek.com"],
             [/object-src 'none'/, "CSP must enforce object-src 'none'"],
+            [/worker-src 'none'/, "CSP must enforce worker-src 'none'"],
             [/base-uri 'none'/, "CSP must enforce base-uri 'none'"],
             [/form-action 'none'/, "CSP must enforce form-action 'none'"],
             [/name="referrer"\s+content="no-referrer"/i, "Missing no-referrer meta tag in index.html"],
           ];
 
+          // 若頁面已掛載 PWA manifest，強制要求 CSP 鎖定 manifest-src 'self'
+          if (/rel=["']manifest["']/i.test(html)) {
+            requiredHtml.push([/manifest-src 'self'/, "CSP must enforce manifest-src 'self' when manifest is linked"]);
+          }
+
+          // 放行 SEO canonical 網址，嚴格封鎖其他所有外部 <script> 與 <link>
           const forbiddenHtml = [
             [/unsafe-inline|unsafe-eval/i, "CSP must not permit unsafe-inline or unsafe-eval"],
             [/<script(?![^>]*\bsrc=)[^>]*>/i, "Inline <script> tag is forbidden"],
-            [/<(script|link)[^>]+(src|href)=["']https?:\/\//i, "External CDN script or stylesheet is forbidden"],
+            [/<script[^>]+src=["']https?:\/\//i, "External CDN script is forbidden"],
+            [/<link(?![^>]*\brel=["']canonical["'])[^>]+href=["']https?:\/\//i, "External CDN stylesheet or link is forbidden"],
           ];
 
           for (const [re, msg] of requiredHtml) {
@@ -106,13 +114,28 @@ jobs:
             }
           }
 
-          // B. style.css 零外部依賴與防資料外洩檢查
+          // B. 若存在 manifest.json，驗證 JSON 語法且不含外部網址
+          if (fs.existsSync("manifest.json")) {
+            const rawManifest = fs.readFileSync("manifest.json", "utf8");
+            try {
+              JSON.parse(rawManifest);
+            } catch (err) {
+              console.error("::error::Invalid JSON in manifest.json: " + err.message);
+              process.exit(1);
+            }
+            if (/https?:\/\//i.test(rawManifest)) {
+              console.error("::error::External URL detected in manifest.json");
+              process.exit(1);
+            }
+          }
+
+          // C. style.css 零外部依賴與防資料外洩檢查
           if (/@import\b/i.test(css) || /https?:\/\//i.test(css)) {
             console.error("::error::External URL or @import detected in style.css");
             process.exit(1);
           }
 
-          // C. app.js 精準端點白名單（防止誤觸雲端 Files API 或外部連線）
+          // D. app.js 精準端點白名單（防止誤觸雲端 Files API 或外部連線）
           const ALLOWED_ENDPOINTS = new Set([
             "https://api.deepseek.com/chat/completions",
             "https://api.deepseek.com/models",
@@ -124,11 +147,15 @@ jobs:
             process.exit(1);
           }
 
-          // D. 確保 fetch 維持零憑證與零網路快取防線
-          if (!/credentials:\s*"omit"/.test(js) || !/cache:\s*"no-store"/.test(js)) {
-            console.error('::error::app.js must enforce credentials: "omit" and cache: "no-store"');
+          // E. 確保 fetch 維持零憑證、零快取與零 Referrer 防線
+          if (
+            !/credentials:\s*"omit"/.test(js) ||
+            !/cache:\s*"no-store"/.test(js) ||
+            !/referrerPolicy:\s*"no-referrer"/.test(js)
+          ) {
+            console.error('::error::app.js must enforce credentials: "omit", cache: "no-store", and referrerPolicy: "no-referrer"');
             process.exit(1);
           }
 
-          console.log("Strict CSP, zero-CDN, CSS hygiene & exact API allowlist checks passed.");
+          console.log("Strict CSP, PWA manifest, zero-CDN, CSS hygiene & exact API allowlist checks passed.");
           EOF
