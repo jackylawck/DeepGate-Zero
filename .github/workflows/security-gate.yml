@@ -1,0 +1,97 @@
+name: Security & Governance Gate
+
+on:
+  push:
+    branches: [ main ]
+  pull_request:
+    branches: [ main ]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  security-gate:
+    name: Zero-Dependency AppSec Check
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: 1. Verify required core files & JS syntax
+        run: |
+          for f in index.html style.css app.js README.md; do
+            if [ ! -f "$f" ]; then
+              echo "::error::Missing required file: $f"
+              exit 1
+            fi
+          done
+          node --check app.js
+          echo "Syntax check passed."
+
+      - name: 2. Secret leak guard (block hardcoded sk- keys)
+        run: |
+          if grep -rnE --exclude-dir=.git 'sk-[A-Za-z0-9]{20,}' .; then
+            echo "::error::Potential hardcoded API key detected!"
+            exit 1
+          fi
+          echo "No hardcoded API keys detected."
+
+      - name: 3. Zero-storage & DOM XSS guard
+        run: |
+          if grep -nE '\b(localStorage|sessionStorage|indexedDB)\b|document\.cookie' app.js index.html; then
+            echo "::error::Forbidden browser storage API detected!"
+            exit 1
+          fi
+          if grep -nE '(\.|\[.)(innerHTML|outerHTML|insertAdjacentHTML)\b|document\.write[[:space:]]*\(|\beval[[:space:]]*\(|new[[:space:]]+Function[[:space:]]*\(' app.js index.html; then
+            echo "::error::Forbidden DOM XSS or unsafe execution sink detected!"
+            exit 1
+          fi
+          echo "Zero-storage & DOM XSS checks passed."
+
+      - name: 4. Strict CSP, zero CDN & API endpoint lock
+        run: |
+          node << 'EOF'
+          const fs = require("fs");
+          const html = fs.readFileSync("index.html", "utf8");
+          const js = fs.readFileSync("app.js", "utf8");
+
+          const requiredHtml = [
+            [/http-equiv="Content-Security-Policy"/i, "Missing CSP meta tag in index.html"],
+            [/default-src 'none'/, "CSP must enforce default-src 'none'"],
+            [/script-src 'self'/, "CSP must enforce script-src 'self'"],
+            [/connect-src https:\/\/api\.deepseek\.com;/, "CSP connect-src must be locked to https://api.deepseek.com"],
+            [/name="referrer"\s+content="no-referrer"/i, "Missing no-referrer meta tag in index.html"],
+          ];
+
+          const forbiddenHtml = [
+            [/unsafe-inline|unsafe-eval/i, "CSP must not permit unsafe-inline or unsafe-eval"],
+            [/<script(?![^>]*\bsrc=)[^>]*>/i, "Inline <script> tag is forbidden"],
+            [/<(script|link)[^>]+(src|href)=["']https?:\/\//i, "External CDN script or stylesheet is forbidden"],
+            [/\son[a-z]+\s*=/i, "Inline HTML event handler (e.g. onclick=) is forbidden"],
+          ];
+
+          for (const [re, msg] of requiredHtml) {
+            if (!re.test(html)) {
+              console.error("::error::" + msg);
+              process.exit(1);
+            }
+          }
+          for (const [re, msg] of forbiddenHtml) {
+            if (re.test(html)) {
+              console.error("::error::" + msg);
+              process.exit(1);
+            }
+          }
+
+          // 確保 app.js 內所有網路連線位址僅指向官方 api.deepseek.com
+          const urls = js.match(/https?:\/\/[^\s"'`<>]+/gi) || [];
+          const unauthorized = urls.filter((u) => !u.startsWith("https://api.deepseek.com/"));
+          if (unauthorized.length > 0) {
+            console.error("::error::Unauthorized external URL in app.js: " + unauthorized.join(", "));
+            process.exit(1);
+          }
+
+          console.log("Strict CSP, zero-CDN & endpoint lock checks passed.");
+          EOF
